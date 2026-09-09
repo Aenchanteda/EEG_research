@@ -1,0 +1,16 @@
+seed: 7
+dataset:
+  loader: moabb
+  name: BNCI2014_001
+  subjects: [1]
+  paradigm: left_right_hand
+preprocess:
+  low: 8.0
+  high: 30.0
+model:
+  name: csp_lda
+  csp_components: 8
+abstention:
+  ece_bins: 15
+  thresholds: null
+notes: "Requires optional MOABB/MNE dependencies: pip install -e .[moabb]"
