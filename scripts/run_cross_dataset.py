@@ -92,7 +92,9 @@ def _require_moabb():
 def _dataset_instance(name: str, subjects: list[int] | None = None):
     mods = _require_moabb()
     if name == "PhysionetMI":
-        return mods[name](imagined=True, executed=False, subjects=subjects)
+        dataset = mods[name](imagined=True, executed=False, subjects=subjects)
+        dataset.feet_runs = []
+        return dataset
     if name in {"BNCI2014_001", "BNCI2014_004"}:
         return mods[name]()
     raise ValueError(f"Unsupported cross-dataset source/target {name!r}")
@@ -348,7 +350,11 @@ def _write_run_notes(summary: dict[str, Any], output_dir: Path) -> None:
         "",
         "## Subject counts",
         "",
+        f"- Source configured subjects: {summary['source']['configured_subject_count']}",
+        f"- Source run limit: {summary['source']['run_subject_limit'] if summary['source']['run_subject_limit'] is not None else 'none'}",
         f"- Source loaded subjects: {len(summary['source']['subjects'])} ({summary['source']['subjects']})",
+        f"- Target configured subjects: {summary['target']['configured_subject_count']}",
+        f"- Target run limit: {summary['target']['run_subject_limit'] if summary['target']['run_subject_limit'] is not None else 'none'}",
         f"- Target loaded subjects: {len(summary['target']['subjects'])} ({summary['target']['subjects']})",
         "- PhysioNet subject 88 is excluded by config for full-dataset loads because MOABB documents it at 128 Hz rather than 160 Hz.",
         "",
@@ -394,8 +400,10 @@ def _write_run_notes(summary: dict[str, Any], output_dir: Path) -> None:
 def _run(cfg: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     source_spec = cfg["source"]
     target_spec = cfg["target"]
-    source_subjects = _limit_subjects(_subject_list(source_spec), args.max_source_subjects)
-    target_subjects = _limit_subjects(_subject_list(target_spec), args.max_target_subjects)
+    configured_source_subjects = _subject_list(source_spec)
+    configured_target_subjects = _subject_list(target_spec)
+    source_subjects = _limit_subjects(configured_source_subjects, args.max_source_subjects)
+    target_subjects = _limit_subjects(configured_target_subjects, args.max_target_subjects)
 
     source_channels = _known_channels(source_spec["name"])
     target_channels = _known_channels(target_spec["name"])
@@ -453,12 +461,16 @@ def _run(cfg: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
         "source": {
             "name": source.name,
             "subjects": source.subjects,
+            "configured_subject_count": len(configured_source_subjects),
+            "run_subject_limit": args.max_source_subjects,
             "n_train": int(len(source.y)),
             "skipped": source.skipped,
         },
         "target": {
             "name": target.name,
             "subjects": target.subjects,
+            "configured_subject_count": len(configured_target_subjects),
+            "run_subject_limit": args.max_target_subjects,
             "n_test": int(len(target.y)),
             "skipped": target.skipped,
         },
