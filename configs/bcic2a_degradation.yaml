@@ -30,9 +30,9 @@ degradation:
   artifacts: [eog, emg, drop]
   eog:
     none: {strength: 0.0, probability: 0.0}
-    low: {strength: 0.8, probability: 0.25}
-    mid: {strength: 1.6, probability: 0.45}
-    high: {strength: 2.8, probability: 0.65}
+    low: {strength: 1.5, probability: 0.35}
+    mid: {strength: 4.0, probability: 0.65}
+    high: {strength: 8.0, probability: 0.85}
   emg:
     none: {strength: 0.0, probability: 0.0}
     low: {strength: 0.25, probability: 0.25}

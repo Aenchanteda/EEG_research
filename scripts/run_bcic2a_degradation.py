@@ -557,7 +557,8 @@ def _write_run_notes(results: list[dict[str, Any]], summary: dict[str, Any], out
         ["Condition", "Forced acc", "Mean SQI", "Softmax cov/acc", "SQI cov/acc", "Fusion cov/acc"],
         key_rows,
     )
-    inventory = "\n".join(f"- `{p.name}`" for p in sorted(output_dir.iterdir()) if p.is_file())
+    artifact_names = sorted({p.name for p in output_dir.iterdir() if p.is_file()} | {"RUN_NOTES.md"})
+    inventory = "\n".join(f"- `{name}`" for name in artifact_names)
     notes = f"""# BCIC IV 2a artifact degradation run
 
 - Source commit: `{_git_head()}`
