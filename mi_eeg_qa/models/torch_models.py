@@ -78,8 +78,24 @@ class TorchTrainConfig:
 class _TorchClassifier:
     model_cls: type[nn.Module]
 
-    def __init__(self, epochs: int = 8, batch_size: int = 32, lr: float = 1e-3, seed: int = 7, dropout: float = 0.25, device: str = "cpu"):
-        self.config = TorchTrainConfig(epochs=epochs, batch_size=batch_size, lr=lr, seed=seed, device=device)
+    def __init__(
+        self,
+        epochs: int = 8,
+        batch_size: int = 32,
+        lr: float = 1e-3,
+        seed: int = 7,
+        dropout: float = 0.25,
+        weight_decay: float = 1e-4,
+        device: str = "cpu",
+    ):
+        self.config = TorchTrainConfig(
+            epochs=epochs,
+            batch_size=batch_size,
+            lr=lr,
+            weight_decay=weight_decay,
+            seed=seed,
+            device=device,
+        )
         self.dropout = dropout
 
     def fit(self, X: np.ndarray, y: np.ndarray):
