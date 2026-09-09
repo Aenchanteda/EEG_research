@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mi-eeg-qa"
+version = "0.1.0"
+description = "Quality-aware and abstention-enabled motor imagery EEG decoding experiments"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.23",
+  "scipy>=1.9",
+  "scikit-learn>=1.2",
+  "torch>=2.0",
+  "pyyaml>=6.0",
+  "matplotlib>=3.6",
+]
+
+[project.optional-dependencies]
+moabb = ["mne>=1.3", "moabb>=1.0"]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+include = ["mi_eeg_qa*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

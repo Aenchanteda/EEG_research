@@ -1,0 +1,19 @@
+seed: 7
+synthetic:
+  n_trials: 180
+  n_channels: 16
+  n_times: 256
+  sfreq: 128.0
+  n_classes: 2
+  class_sep: 1.1
+  noise: 0.8
+preprocess:
+  low: 8.0
+  high: 30.0
+model:
+  csp_components: 6
+abstention:
+  thresholds: [0.0, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  sqi_threshold: 0.45
+  softmax_threshold: 0.55
+artifacts_dir: artifacts
