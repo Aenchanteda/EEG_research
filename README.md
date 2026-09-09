@@ -98,3 +98,18 @@ The BCIC run writes per-subject JSON and risk-coverage PNGs under
 `summary_fusion_risk_coverage.png`. Saved policy IDs are locked to:
 `forced`, `softmax`, `margin`, `sqi`, `combined_and`, and `fusion`; model ID
 `csp_lda` maps to `CSPLDAClassifier`.
+
+### Run BCIC IV 2b within-subject experiments
+
+```bash
+python3 -m pip install -e .[dev,moabb]
+python3 scripts/run_within_subject.py --config configs/bcic2b.yaml
+```
+
+The BCIC IV 2b config uses MOABB `BNCI2014_004`, all 9 subjects, the same
+binary `left_right_hand` paradigm, 8-30 Hz bandpass, and the locked abstention
+policy IDs listed above. It writes artifacts under `artifacts/bcic2b/`.
+BCIC IV 2b differs from 2a in channel montage: it has 3 bipolar EEG channels
+(C3, Cz, C4 montage), so the config uses 2 CSP components rather than the
+larger 2a setting. The runner still prefers MOABB session-based splits and
+documents the deterministic stratified fallback if session metadata is absent.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run BCIC IV 2a within-subject CSP-LDA experiments through MOABB."""
+"""Run BCIC within-subject CSP-LDA experiments through MOABB."""
 
 from __future__ import annotations
 
@@ -29,6 +29,11 @@ from mi_eeg_qa.sqi import fit_sqi, transform_sqi
 
 
 POLICIES = ("forced", "softmax", "margin", "sqi", "combined_and", "fusion")
+
+DATASET_LABELS = {
+    "BNCI2014_001": "BCIC IV 2a",
+    "BNCI2014_004": "BCIC IV 2b",
+}
 
 
 def _load_config(path: Path) -> dict[str, Any]:
@@ -190,10 +195,16 @@ def _evaluate_policies(
     return policy_results
 
 
+def _dataset_label(cfg: dict[str, Any]) -> str:
+    ds = cfg.get("dataset", {})
+    return str(ds.get("label") or DATASET_LABELS.get(ds.get("name"), ds.get("name", "MOABB dataset")))
+
+
 def _run_subject(subject: int, cfg: dict[str, Any], output_dir: Path) -> dict[str, Any]:
     seed = int(cfg.get("seed", 7))
     ds = cfg["dataset"]
-    request = MOABBRequest(dataset="BNCI2014_001", subjects=(subject,), paradigm=ds.get("paradigm", "left_right_hand"))
+    dataset_name = str(ds.get("name", "BNCI2014_001"))
+    request = MOABBRequest(dataset=dataset_name, subjects=(subject,), paradigm=ds.get("paradigm", "left_right_hand"))
     X, y_raw, metadata = load_moabb_epochs(request)
     X = np.asarray(X, dtype=np.float32)
 
@@ -201,7 +212,7 @@ def _run_subject(subject: int, cfg: dict[str, Any], output_dir: Path) -> dict[st
     y = label_encoder.transform(y_raw)
     if len(label_encoder.classes_) != 2:
         raise ValueError(
-            f"BCIC IV 2a CSP-LDA run requires binary left_right_hand labels; got {list(label_encoder.classes_)}"
+            f"{dataset_name} CSP-LDA run requires binary labels; got {list(label_encoder.classes_)}"
         )
 
     split_cfg = cfg.get("split", {})
@@ -227,7 +238,7 @@ def _run_subject(subject: int, cfg: dict[str, Any], output_dir: Path) -> dict[st
 
     model_cfg = cfg.get("model", {})
     if model_cfg.get("name", "csp_lda") != "csp_lda":
-        raise ValueError("This BCIC IV 2a script currently supports model.name: csp_lda")
+        raise ValueError("This within-subject script currently supports model.name: csp_lda")
     model = CSPLDAClassifier(n_components=int(model_cfg.get("csp_components", 8)))
     model.fit(X_train, y_train)
     proba = model.predict_proba(X_test)
@@ -244,7 +255,8 @@ def _run_subject(subject: int, cfg: dict[str, Any], output_dir: Path) -> dict[st
     policies = _evaluate_policies(y_test, proba, q_test, cfg)
 
     result = {
-        "dataset": "BNCI2014_001",
+        "dataset": dataset_name,
+        "dataset_label": _dataset_label(cfg),
         "subject": int(subject),
         "labels": label_encoder.classes_.tolist(),
         "seed": seed,
@@ -259,11 +271,14 @@ def _run_subject(subject: int, cfg: dict[str, Any], output_dir: Path) -> dict[st
         },
         "metrics": metrics,
         "policies": policies,
+        "_y_test": y_test,
+        "_proba": proba,
     }
 
     output_dir.mkdir(parents=True, exist_ok=True)
     subject_json = output_dir / f"subject_{subject:02d}.json"
-    subject_json.write_text(json.dumps(_jsonable(result), indent=2, allow_nan=True), encoding="utf-8")
+    public_result = {k: v for k, v in result.items() if not k.startswith("_")}
+    subject_json.write_text(json.dumps(_jsonable(public_result), indent=2, allow_nan=True), encoding="utf-8")
     _plot_subject(result, output_dir / f"subject_{subject:02d}_risk_coverage.png")
     return result
 
@@ -275,7 +290,7 @@ def _plot_subject(result: dict[str, Any], path: Path) -> None:
         plt.plot(curve["coverage"], curve["risk"], label=name, linewidth=1.2)
     plt.xlabel("Coverage")
     plt.ylabel("Risk (1 - accuracy)")
-    plt.title(f"BCIC IV 2a subject {result['subject']:02d} risk-coverage")
+    plt.title(f"{result.get('dataset_label', result['dataset'])} subject {result['subject']:02d} risk-coverage")
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=8)
     plt.tight_layout()
@@ -288,6 +303,14 @@ def _write_summary(results: list[dict[str, Any]], output_dir: Path) -> dict[str,
     metric_names = ("accuracy", "expected_calibration_error", "brier_score")
     summary["metrics_mean"] = {
         name: float(np.mean([r["metrics"][name] for r in results])) for name in metric_names
+    }
+    y_all = np.concatenate([np.asarray(r["_y_test"]) for r in results])
+    proba_all = np.concatenate([np.asarray(r["_proba"]) for r in results])
+    summary["metrics_pooled"] = {
+        "accuracy": accuracy(y_all, proba_all.argmax(axis=1)),
+        "expected_calibration_error": expected_calibration_error(y_all, proba_all),
+        "brier_score": brier_score(y_all, proba_all),
+        "n_trials": int(y_all.size),
     }
     summary["policies_mean"] = {}
     for policy in POLICIES:
@@ -303,7 +326,8 @@ def _write_summary(results: list[dict[str, Any]], output_dir: Path) -> dict[str,
         plt.plot(curve["coverage"], curve["risk"], alpha=0.35, linewidth=1.0, label=f"S{result['subject']:02d}")
     plt.xlabel("Coverage")
     plt.ylabel("Risk (1 - accuracy)")
-    plt.title("BCIC IV 2a fusion risk-coverage by subject")
+    title_label = results[0].get("dataset_label", results[0]["dataset"]) if results else "BCIC"
+    plt.title(f"{title_label} fusion risk-coverage by subject")
     plt.grid(True, alpha=0.3)
     if len(results) <= 9:
         plt.legend(fontsize=7, ncol=3)
@@ -311,6 +335,118 @@ def _write_summary(results: list[dict[str, Any]], output_dir: Path) -> dict[str,
     plt.savefig(output_dir / "summary_fusion_risk_coverage.png", dpi=140)
     plt.close()
     return summary
+
+
+def _fmt_float(value: float) -> str:
+    return "nan" if np.isnan(value) else f"{value:.3f}"
+
+
+def _write_run_notes(
+    cfg: dict[str, Any],
+    results: list[dict[str, Any]],
+    summary: dict[str, Any],
+    output_dir: Path,
+    command: str,
+) -> None:
+    ds = cfg.get("dataset", {})
+    pp = cfg.get("preprocess", {})
+    model = cfg.get("model", {})
+    dataset_name = str(ds.get("name", results[0]["dataset"] if results else "MOABB"))
+    dataset_label = _dataset_label(cfg)
+    channel_note = str(ds.get("channel_note", "MOABB paradigm channel selection"))
+    split_methods = sorted({str(r["split"]["method"]) for r in results})
+    pooled = summary["metrics_pooled"]
+    mean = summary["metrics_mean"]
+
+    lines = [
+        f"# {dataset_label} within-subject CSP-LDA abstention run",
+        "",
+        f"- Command: `{command}`",
+        f"- Config: `{cfg.get('_config_path', 'unknown')}`",
+        f"- Output directory: `{output_dir.as_posix()}/`",
+        f"- Dataset: MOABB `{dataset_name}`, `{ds.get('paradigm', 'left_right_hand')}` paradigm",
+        f"- Subjects completed: {', '.join(str(r['subject']) for r in results)}",
+        f"- Bandpass: {float(pp.get('low', 8.0)):.1f}-{float(pp.get('high', 30.0)):.1f} Hz",
+        f"- Model: `{model.get('name', 'csp_lda')}` with {int(model.get('csp_components', 8))} CSP components",
+        f"- Channel montage note: {channel_note}",
+        f"- SQI: fit on train split only, then transformed train/test with method `{cfg.get('sqi', {}).get('method', 'rank')}`",
+        f"- Split methods observed: {', '.join(split_methods)}",
+        "- Failures/errors: none.",
+        "",
+        "## Pooled held-out metrics",
+        "",
+        "| Metric | Value |",
+        "| --- | ---: |",
+        f"| Accuracy | {_fmt_float(float(pooled['accuracy']))} |",
+        f"| ECE | {_fmt_float(float(pooled['expected_calibration_error']))} |",
+        f"| Brier | {_fmt_float(float(pooled['brier_score']))} |",
+        f"| Trials | {int(pooled['n_trials'])} |",
+        "",
+        "## Subject-mean metrics",
+        "",
+        "| Metric | Mean |",
+        "| --- | ---: |",
+        f"| Accuracy | {_fmt_float(float(mean['accuracy']))} |",
+        f"| ECE | {_fmt_float(float(mean['expected_calibration_error']))} |",
+        f"| Brier | {_fmt_float(float(mean['brier_score']))} |",
+        "",
+        "## Default policy means",
+        "",
+        "| Policy | Coverage | Accepted accuracy | Risk |",
+        "| --- | ---: | ---: | ---: |",
+    ]
+    for policy in POLICIES:
+        row = summary["policies_mean"][policy]
+        lines.append(
+            f"| {policy} | {_fmt_float(float(row['coverage']))} | "
+            f"{_fmt_float(float(row['accuracy']))} | {_fmt_float(float(row['risk']))} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Per-subject compact metrics",
+            "",
+            "| Subject | Accuracy | ECE | Brier | Forced cov | Softmax cov/acc | Margin cov/acc | SQI cov/acc | Combined cov/acc | Fusion cov/acc | Split |",
+            "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+        ]
+    )
+    for result in results:
+        metrics = result["metrics"]
+        policies = result["policies"]
+        lines.append(
+            f"| {int(result['subject'])} | {_fmt_float(float(metrics['accuracy']))} | "
+            f"{_fmt_float(float(metrics['expected_calibration_error']))} | "
+            f"{_fmt_float(float(metrics['brier_score']))} | "
+            f"{_fmt_float(float(policies['forced']['default']['coverage']))} | "
+            f"{_fmt_float(float(policies['softmax']['default']['coverage']))}/"
+            f"{_fmt_float(float(policies['softmax']['default']['accuracy']))} | "
+            f"{_fmt_float(float(policies['margin']['default']['coverage']))}/"
+            f"{_fmt_float(float(policies['margin']['default']['accuracy']))} | "
+            f"{_fmt_float(float(policies['sqi']['default']['coverage']))}/"
+            f"{_fmt_float(float(policies['sqi']['default']['accuracy']))} | "
+            f"{_fmt_float(float(policies['combined_and']['default']['coverage']))}/"
+            f"{_fmt_float(float(policies['combined_and']['default']['accuracy']))} | "
+            f"{_fmt_float(float(policies['fusion']['default']['coverage']))}/"
+            f"{_fmt_float(float(policies['fusion']['default']['accuracy']))} | "
+            f"{result['split']['method']} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Artifact inventory",
+            "",
+            "- `summary.json`",
+            "- `summary_fusion_risk_coverage.png`",
+        ]
+    )
+    for result in results:
+        subject = int(result["subject"])
+        lines.append(f"- `subject_{subject:02d}.json`, `subject_{subject:02d}_risk_coverage.png`")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "RUN_NOTES.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _subjects_from_args(args: argparse.Namespace, cfg: dict[str, Any]) -> list[int]:
@@ -324,7 +460,7 @@ def _subjects_from_args(args: argparse.Namespace, cfg: dict[str, Any]) -> list[i
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run BCIC IV 2a within-subject CSP-LDA experiments.")
+    parser = argparse.ArgumentParser(description="Run BCIC within-subject CSP-LDA experiments.")
     parser.add_argument("--config", default="configs/bcic2a.yaml")
     parser.add_argument("--subject", type=int, action="append", help="Subject to run; can be repeated. Overrides config list.")
     parser.add_argument("--smoke-moabb", action="store_true", help="Run only one configured subject to validate MOABB download/loading.")
@@ -332,13 +468,15 @@ def main() -> None:
     args = parser.parse_args()
 
     cfg = _load_config(Path(args.config))
+    cfg["_config_path"] = args.config
     output_dir = Path(args.output_dir or cfg.get("artifacts_dir", "artifacts/bcic2a"))
     subjects = _subjects_from_args(args, cfg)
 
     try:
         results = []
         for subject in subjects:
-            print(f"Running BNCI2014_001 within-subject CSP-LDA for subject {subject:02d}")
+            dataset_name = cfg.get("dataset", {}).get("name", "BNCI2014_001")
+            print(f"Running {dataset_name} within-subject CSP-LDA for subject {subject:02d}")
             result = _run_subject(subject, cfg, output_dir)
             results.append(result)
             m = result["metrics"]
@@ -354,8 +492,9 @@ def main() -> None:
         raise SystemExit(2) from exc
 
     summary = _write_summary(results, output_dir)
+    _write_run_notes(cfg, results, summary, output_dir, "python3 " + " ".join(sys.argv))
     print(f"Wrote per-subject JSON/PNG artifacts and summary under {output_dir}")
-    print(json.dumps(_jsonable(summary["metrics_mean"]), indent=2))
+    print(json.dumps(_jsonable(summary["metrics_pooled"]), indent=2))
 
 
 if __name__ == "__main__":
