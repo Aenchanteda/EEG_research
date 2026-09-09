@@ -99,6 +99,31 @@ The BCIC run writes per-subject JSON and risk-coverage PNGs under
 `forced`, `softmax`, `margin`, `sqi`, `combined_and`, and `fusion`; model ID
 `csp_lda` maps to `CSPLDAClassifier`.
 
+### Run BCIC IV 2a artifact degradation experiments
+
+```bash
+python3 scripts/run_bcic2a_degradation.py --config configs/bcic2a_degradation.yaml
+```
+
+This controlled experiment uses the same binary BCIC IV 2a left/right
+within-subject setup as `run_within_subject.py`, fits CSP-LDA and SQI on clean
+training epochs only, and injects EOG-like bursts, EMG/HF bursts, or channel
+drops into test epochs. Outputs are written to
+`artifacts/bcic2a_degradation/` as per-subject JSON files, pooled
+`summary.json`, `RUN_NOTES.md`, and summary PNGs.
+
+Run a smaller matrix first:
+
+```bash
+python3 scripts/run_bcic2a_degradation.py --config configs/bcic2a_degradation.yaml --severity none --severity mid
+```
+
+Run one subject or one artifact type:
+
+```bash
+python3 scripts/run_bcic2a_degradation.py --config configs/bcic2a_degradation.yaml --subject 1
+python3 scripts/run_bcic2a_degradation.py --config configs/bcic2a_degradation.yaml --artifact eog
+```
 ### Run BCIC IV 2b within-subject experiments
 
 ```bash
