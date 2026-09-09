@@ -1,0 +1,36 @@
+seed: 7
+source:
+  loader: moabb
+  name: BNCI2014_001
+  subjects: all
+  paradigm: left_right_hand
+target:
+  loader: moabb
+  name: PhysionetMI
+  subjects: all
+  exclude_subjects: [88]
+  paradigm: left_right_hand_imagery
+  notes: "MOABB PhysionetMI(imagined=True, executed=False): imagery left/right fist runs 4, 8, 12."
+sfreq: 160.0
+epoch:
+  tmin: 0.5
+  tmax: 3.0
+preprocess:
+  low: 8.0
+  high: 30.0
+model:
+  name: csp_lda
+  csp_components: 8
+abstention:
+  ece_bins: 15
+  thresholds: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+  softmax_threshold: 0.6
+  margin_threshold: 0.2
+  sqi_threshold: 0.45
+  fusion_threshold: 0.5
+  fusion_weight_confidence: 0.5
+  fusion_weight_grid: [0.25, 0.5, 0.75]
+sqi:
+  method: rank
+artifacts_dir: artifacts/cross_physionet_bcic/bcic2a_to_physionet
+notes: "First run downloads BCIC IV 2a and PhysioNet EEGBCI through MOABB/MNE."

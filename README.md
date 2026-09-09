@@ -98,3 +98,37 @@ The BCIC run writes per-subject JSON and risk-coverage PNGs under
 `summary_fusion_risk_coverage.png`. Saved policy IDs are locked to:
 `forced`, `softmax`, `margin`, `sqi`, `combined_and`, and `fusion`; model ID
 `csp_lda` maps to `CSPLDAClassifier`.
+
+### Run PhysioNet <-> BCIC IV 2a cross-dataset experiments
+
+```bash
+python3 -m pip install -e .[dev,moabb]
+python3 scripts/run_cross_dataset.py --config configs/cross_physionet_to_bcic2a.yaml
+python3 scripts/run_cross_dataset.py --config configs/cross_bcic2a_to_physionet.yaml
+```
+
+These runs keep the binary CSP-LDA setup and locked abstention policy IDs used
+by the within-subject runner. The source dataset is pooled into one labeled
+training set; the target dataset is used only for evaluation. SQI is fit on
+source training epochs only and transformed on target epochs.
+
+Harmonization is explicit in the config and `RUN_NOTES.md`: labels are
+left-vs-right hand only, PhysioNet uses MOABB `PhysionetMI(imagined=True,
+executed=False)` for imagery left/right fist runs 4/8/12, channels are selected
+as the BCIC IV 2a 22-channel intersection, data are resampled to 160 Hz, and
+the epoch window is 0.5-3.0 s. PhysioNet subject 88 is excluded for full
+multi-subject loads because MOABB documents its 128 Hz sampling rate mismatch.
+
+If full PhysioNet downloads are too slow, run a partial source or target check:
+
+```bash
+python3 scripts/run_cross_dataset.py --config configs/cross_physionet_to_bcic2a.yaml --max-source-subjects 20
+python3 scripts/run_cross_dataset.py --config configs/cross_bcic2a_to_physionet.yaml --max-target-subjects 20
+```
+
+Artifacts are written under `artifacts/cross_physionet_bcic/`, including
+`summary.json`, `RUN_NOTES.md`, pooled risk-coverage PNGs, default policy
+operating-point PNGs, and per-target-subject JSON files. The summary includes
+the BCIC IV 2a within-subject reference from PR #2 so the expected accuracy
+drop under dataset shift can be reported without claiming FBCNet or other
+out-of-scope models.
