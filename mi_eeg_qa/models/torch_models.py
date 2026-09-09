@@ -42,7 +42,7 @@ class EEGNet(nn.Module):
 
 
 class ShallowConvNet(nn.Module):
-    """ShallowConvNet/FBCNet-like baseline with temporal and spatial filters."""
+    """ShallowConvNet baseline used as a lightweight stand-in for future FBCNet work."""
 
     def __init__(self, n_channels: int, n_times: int, n_classes: int, dropout: float = 0.35):
         super().__init__()
