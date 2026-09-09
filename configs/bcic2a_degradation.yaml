@@ -1,0 +1,47 @@
+seed: 7
+dataset:
+  loader: moabb
+  name: BNCI2014_001
+  subjects: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  paradigm: left_right_hand
+  sfreq: 250.0
+split:
+  prefer_sessions: true
+  fallback_test_size: 0.35
+preprocess:
+  low: 8.0
+  high: 30.0
+model:
+  name: csp_lda
+  csp_components: 8
+abstention:
+  ece_bins: 15
+  thresholds: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+  softmax_threshold: 0.6
+  margin_threshold: 0.2
+  sqi_threshold: 0.45
+  fusion_threshold: 0.5
+  fusion_weight_confidence: 0.5
+  fusion_weight_grid: [0.25, 0.5, 0.75]
+sqi:
+  method: rank
+degradation:
+  severities: [none, low, mid, high]
+  artifacts: [eog, emg, drop]
+  eog:
+    none: {strength: 0.0, probability: 0.0}
+    low: {strength: 1.5, probability: 0.35}
+    mid: {strength: 4.0, probability: 0.65}
+    high: {strength: 8.0, probability: 0.85}
+  emg:
+    none: {strength: 0.0, probability: 0.0}
+    low: {strength: 0.25, probability: 0.25}
+    mid: {strength: 0.55, probability: 0.45}
+    high: {strength: 0.9, probability: 0.65}
+  drop:
+    none: {drop_fraction: 0.0}
+    low: {drop_fraction: 0.05}
+    mid: {drop_fraction: 0.15}
+    high: {drop_fraction: 0.3}
+artifacts_dir: artifacts/bcic2a_degradation
+notes: "Fits CSP-LDA and SQI on clean training epochs; injects artifact degradation into test epochs only."

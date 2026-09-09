@@ -1,0 +1,500 @@
+{
+  "n_subjects": 9,
+  "subjects": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "conditions": {
+    "clean": {
+      "artifact": "clean",
+      "severity": "none",
+      "n_subjects": 9,
+      "metrics_mean": {
+        "accuracy": 0.8549382716049383,
+        "expected_calibration_error": 0.049408316951657885,
+        "brier_score": 0.20658238030539222
+      },
+      "sqi_mean": 0.3793141557355967,
+      "policies_mean": {
+        "forced": {
+          "coverage": 1.0,
+          "accuracy": 0.8549382716049383,
+          "risk": 0.14506172839506173
+        },
+        "softmax": {
+          "coverage": 0.8888888888888888,
+          "accuracy": 0.8778336680137655,
+          "risk": 0.12216633198623435
+        },
+        "margin": {
+          "coverage": 0.8888888888888888,
+          "accuracy": 0.8778336680137655,
+          "risk": 0.12216633198623435
+        },
+        "sqi": {
+          "coverage": 0.33256172839506176,
+          "accuracy": 0.845961535758063,
+          "risk": 0.154038464241937
+        },
+        "combined_and": {
+          "coverage": 0.30246913580246915,
+          "accuracy": 0.8660127245367248,
+          "risk": 0.13398727546327505
+        },
+        "fusion": {
+          "coverage": 0.8209876543209877,
+          "accuracy": 0.8891406511105411,
+          "risk": 0.11085934888945886
+        }
+      }
+    },
+    "eog_low": {
+      "artifact": "eog",
+      "severity": "low",
+      "n_subjects": 9,
+      "metrics_mean": {
+        "accuracy": 0.8526234567901234,
+        "expected_calibration_error": 0.04599760790140493,
+        "brier_score": 0.20613503232899705
+      },
+      "sqi_mean": 0.3808218664266118,
+      "policies_mean": {
+        "forced": {
+          "coverage": 1.0,
+          "accuracy": 0.8526234567901234,
+          "risk": 0.14737654320987656
+        },
+        "softmax": {
+          "coverage": 0.8858024691358024,
+          "accuracy": 0.8809530592634063,
+          "risk": 0.11904694073659378
+        },
+        "margin": {
+          "coverage": 0.8858024691358024,
+          "accuracy": 0.8809530592634063,
+          "risk": 0.11904694073659378
+        },
+        "sqi": {
+          "coverage": 0.3395061728395062,
+          "accuracy": 0.8454388207016794,
+          "risk": 0.15456117929832053
+        },
+        "combined_and": {
+          "coverage": 0.3109567901234568,
+          "accuracy": 0.86673482263018,
+          "risk": 0.13326517736982005
+        },
+        "fusion": {
+          "coverage": 0.8248456790123457,
+          "accuracy": 0.8898112310877979,
+          "risk": 0.11018876891220217
+        }
+      }
+    },
+    "eog_mid": {
+      "artifact": "eog",
+      "severity": "mid",
+      "n_subjects": 9,
+      "metrics_mean": {
+        "accuracy": 0.8379629629629629,
+        "expected_calibration_error": 0.06095987540737161,
+        "brier_score": 0.22125997607740794
+      },
+      "sqi_mean": 0.3622449417009602,
+      "policies_mean": {
+        "forced": {
+          "coverage": 1.0,
+          "accuracy": 0.8379629629629629,
+          "risk": 0.16203703703703706
+        },
+        "softmax": {
+          "coverage": 0.8827160493827161,
+          "accuracy": 0.8683040818439102,
+          "risk": 0.13169591815608983
+        },
+        "margin": {
+          "coverage": 0.8827160493827161,
+          "accuracy": 0.8683040818439102,
+          "risk": 0.13169591815608983
+        },
+        "sqi": {
+          "coverage": 0.27391975308641975,
+          "accuracy": 0.8333422665952006,
+          "risk": 0.16665773340479945
+        },
+        "combined_and": {
+          "coverage": 0.24845679012345678,
+          "accuracy": 0.8506648194196332,
+          "risk": 0.14933518058036674
+        },
+        "fusion": {
+          "coverage": 0.8148148148148148,
+          "accuracy": 0.8791469579768303,
+          "risk": 0.12085304202316978
+        }
+      }
+    },
+    "eog_high": {
+      "artifact": "eog",
+      "severity": "high",
+      "n_subjects": 9,
+      "metrics_mean": {
+        "accuracy": 0.761574074074074,
+        "expected_calibration_error": 0.14076539858791334,
+        "brier_score": 0.3544353248287567
+      },
+      "sqi_mean": 0.342538473079561,
+      "policies_mean": {
+        "forced": {
+          "coverage": 1.0,
+          "accuracy": 0.761574074074074,
+          "risk": 0.2384259259259259
+        },
+        "softmax": {
+          "coverage": 0.9104938271604939,
+          "accuracy": 0.7750146951257197,
+          "risk": 0.2249853048742803
+        },
+        "margin": {
+          "coverage": 0.9104938271604939,
+          "accuracy": 0.7750146951257197,
+          "risk": 0.2249853048742803
+        },
+        "sqi": {
+          "coverage": 0.1689814814814815,
+          "accuracy": 0.7631507381507381,
+          "risk": 0.23684926184926183
+        },
+        "combined_and": {
+          "coverage": 0.14891975308641978,
+          "accuracy": 0.7752298694327681,
+          "risk": 0.22477013056723205
+        },
+        "fusion": {
+          "coverage": 0.8564814814814814,
+          "accuracy": 0.7883495434128298,
+          "risk": 0.2116504565871703
+        }
+      }
+    },
+    "emg_low": {
+      "artifact": "emg",
+      "severity": "low",
+      "n_subjects": 9,
+      "metrics_mean": {
+        "accuracy": 0.8117283950617283,
+        "expected_calibration_error": 0.07947875229521303,
+        "brier_score": 0.260003997973841
+      },
+      "sqi_mean": 0.3320501382458848,
+      "policies_mean": {
+        "forced": {
+          "coverage": 1.0,
+          "accuracy": 0.8117283950617283,
+          "risk": 0.1882716049382716
+        },
+        "softmax": {
+          "coverage": 0.8842592592592593,
+          "accuracy": 0.83464257481032,
+          "risk": 0.16535742518968
+        },
+        "margin": {
+          "coverage": 0.8842592592592593,
+          "accuracy": 0.83464257481032,
+          "risk": 0.16535742518968
+        },
+        "sqi": {
+          "coverage": 0.24305555555555555,
+          "accuracy": 0.8260117772230138,
+          "risk": 0.17398822277698628
+        },
+        "combined_and": {
+          "coverage": 0.2199074074074074,
+          "accuracy": 0.8469004466567103,
+          "risk": 0.1530995533432898
+        },
+        "fusion": {
+          "coverage": 0.7770061728395061,
+          "accuracy": 0.8533843255505962,
+          "risk": 0.1466156744494038
+        }
+      }
+    },
+    "emg_mid": {
+      "artifact": "emg",
+      "severity": "mid",
+      "n_subjects": 9,
+      "metrics_mean": {
+        "accuracy": 0.6936728395061729,
+        "expected_calibration_error": 0.1818604940299692,
+        "brier_score": 0.45726820639099647
+      },
+      "sqi_mean": 0.2939948774005487,
+      "policies_mean": {
+        "forced": {
+          "coverage": 1.0,
+          "accuracy": 0.6936728395061729,
+          "risk": 0.30632716049382713
+        },
+        "softmax": {
+          "coverage": 0.9174382716049381,
+          "accuracy": 0.699839068751525,
+          "risk": 0.30016093124847487
+        },
+        "margin": {
+          "coverage": 0.9174382716049381,
+          "accuracy": 0.699839068751525,
+          "risk": 0.30016093124847487
+        },
+        "sqi": {
+          "coverage": 0.17746913580246915,
+          "accuracy": 0.8720717759606649,
+          "risk": 0.12792822403933515
+        },
+        "combined_and": {
+          "coverage": 0.16435185185185183,
+          "accuracy": 0.8879115721119718,
+          "risk": 0.11208842788802809
+        },
+        "fusion": {
+          "coverage": 0.7577160493827161,
+          "accuracy": 0.7532569939024759,
+          "risk": 0.24674300609752406
+        }
+      }
+    },
+    "emg_high": {
+      "artifact": "emg",
+      "severity": "high",
+      "n_subjects": 9,
+      "metrics_mean": {
+        "accuracy": 0.6195987654320988,
+        "expected_calibration_error": 0.27510755470876525,
+        "brier_score": 0.6056902107253688
+      },
+      "sqi_mean": 0.24953931434327853,
+      "policies_mean": {
+        "forced": {
+          "coverage": 1.0,
+          "accuracy": 0.6195987654320988,
+          "risk": 0.38040123456790126
+        },
+        "softmax": {
+          "coverage": 0.9290123456790123,
+          "accuracy": 0.6255640742941263,
+          "risk": 0.37443592570587364
+        },
+        "margin": {
+          "coverage": 0.9290123456790123,
+          "accuracy": 0.6255640742941263,
+          "risk": 0.37443592570587364
+        },
+        "sqi": {
+          "coverage": 0.11651234567901235,
+          "accuracy": 0.8270285547117333,
+          "risk": 0.17297144528826677
+        },
+        "combined_and": {
+          "coverage": 0.11033950617283951,
+          "accuracy": 0.8191022217854004,
+          "risk": 0.18089777821459968
+        },
+        "fusion": {
+          "coverage": 0.7561728395061729,
+          "accuracy": 0.654015076979574,
+          "risk": 0.34598492302042605
+        }
+      }
+    },
+    "drop_low": {
+      "artifact": "drop",
+      "severity": "low",
+      "n_subjects": 9,
+      "metrics_mean": {
+        "accuracy": 0.6118827160493827,
+        "expected_calibration_error": 0.33441801971659796,
+        "brier_score": 0.6987077618126312
+      },
+      "sqi_mean": 0.375768517787832,
+      "policies_mean": {
+        "forced": {
+          "coverage": 1.0,
+          "accuracy": 0.6118827160493827,
+          "risk": 0.3881172839506173
+        },
+        "softmax": {
+          "coverage": 0.9645061728395061,
+          "accuracy": 0.6196716372901867,
+          "risk": 0.3803283627098133
+        },
+        "margin": {
+          "coverage": 0.9645061728395061,
+          "accuracy": 0.6196716372901867,
+          "risk": 0.3803283627098133
+        },
+        "sqi": {
+          "coverage": 0.3217592592592593,
+          "accuracy": 0.6036148188991936,
+          "risk": 0.39638518110080645
+        },
+        "combined_and": {
+          "coverage": 0.3070987654320988,
+          "accuracy": 0.6193367116448958,
+          "risk": 0.3806632883551042
+        },
+        "fusion": {
+          "coverage": 0.9498456790123456,
+          "accuracy": 0.6162909545245806,
+          "risk": 0.38370904547541945
+        }
+      }
+    },
+    "drop_mid": {
+      "artifact": "drop",
+      "severity": "mid",
+      "n_subjects": 9,
+      "metrics_mean": {
+        "accuracy": 0.5316358024691358,
+        "expected_calibration_error": 0.36730913603741433,
+        "brier_score": 0.7892011212853344
+      },
+      "sqi_mean": 0.36493442210492266,
+      "policies_mean": {
+        "forced": {
+          "coverage": 1.0,
+          "accuracy": 0.5316358024691358,
+          "risk": 0.46836419753086417
+        },
+        "softmax": {
+          "coverage": 0.9035493827160495,
+          "accuracy": 0.5407763284650415,
+          "risk": 0.4592236715349585
+        },
+        "margin": {
+          "coverage": 0.9035493827160495,
+          "accuracy": 0.5407763284650415,
+          "risk": 0.4592236715349585
+        },
+        "sqi": {
+          "coverage": 0.2839506172839506,
+          "accuracy": 0.5201891898930148,
+          "risk": 0.47981081010698534
+        },
+        "combined_and": {
+          "coverage": 0.2561728395061728,
+          "accuracy": 0.5314223537362177,
+          "risk": 0.46857764626378234
+        },
+        "fusion": {
+          "coverage": 0.8695987654320987,
+          "accuracy": 0.5441171431914676,
+          "risk": 0.45588285680853236
+        }
+      }
+    },
+    "drop_high": {
+      "artifact": "drop",
+      "severity": "high",
+      "n_subjects": 9,
+      "metrics_mean": {
+        "accuracy": 0.5,
+        "expected_calibration_error": 0.4888016415711053,
+        "brier_score": 0.9784849669595624
+      },
+      "sqi_mean": 0.34171339406799484,
+      "policies_mean": {
+        "forced": {
+          "coverage": 1.0,
+          "accuracy": 0.5,
+          "risk": 0.5
+        },
+        "softmax": {
+          "coverage": 1.0,
+          "accuracy": 0.5,
+          "risk": 0.5
+        },
+        "margin": {
+          "coverage": 1.0,
+          "accuracy": 0.5,
+          "risk": 0.5
+        },
+        "sqi": {
+          "coverage": 0.17206790123456794,
+          "accuracy": 0.44548405728434187,
+          "risk": 0.5545159427156581
+        },
+        "combined_and": {
+          "coverage": 0.17206790123456794,
+          "accuracy": 0.44548405728434187,
+          "risk": 0.5545159427156581
+        },
+        "fusion": {
+          "coverage": 0.9984567901234568,
+          "accuracy": 0.5,
+          "risk": 0.5
+        }
+      }
+    }
+  },
+  "mid_severity_key_table": [
+    {
+      "condition": "clean",
+      "artifact": "clean",
+      "severity": "none",
+      "forced_accuracy": 0.8549382716049383,
+      "sqi_mean": 0.3793141557355967,
+      "softmax_coverage": 0.8888888888888888,
+      "softmax_accepted_accuracy": 0.8778336680137655,
+      "sqi_coverage": 0.33256172839506176,
+      "sqi_accepted_accuracy": 0.845961535758063,
+      "fusion_coverage": 0.8209876543209877,
+      "fusion_accepted_accuracy": 0.8891406511105411
+    },
+    {
+      "condition": "eog_mid",
+      "artifact": "eog",
+      "severity": "mid",
+      "forced_accuracy": 0.8379629629629629,
+      "sqi_mean": 0.3622449417009602,
+      "softmax_coverage": 0.8827160493827161,
+      "softmax_accepted_accuracy": 0.8683040818439102,
+      "sqi_coverage": 0.27391975308641975,
+      "sqi_accepted_accuracy": 0.8333422665952006,
+      "fusion_coverage": 0.8148148148148148,
+      "fusion_accepted_accuracy": 0.8791469579768303
+    },
+    {
+      "condition": "emg_mid",
+      "artifact": "emg",
+      "severity": "mid",
+      "forced_accuracy": 0.6936728395061729,
+      "sqi_mean": 0.2939948774005487,
+      "softmax_coverage": 0.9174382716049381,
+      "softmax_accepted_accuracy": 0.699839068751525,
+      "sqi_coverage": 0.17746913580246915,
+      "sqi_accepted_accuracy": 0.8720717759606649,
+      "fusion_coverage": 0.7577160493827161,
+      "fusion_accepted_accuracy": 0.7532569939024759
+    },
+    {
+      "condition": "drop_mid",
+      "artifact": "drop",
+      "severity": "mid",
+      "forced_accuracy": 0.5316358024691358,
+      "sqi_mean": 0.36493442210492266,
+      "softmax_coverage": 0.9035493827160495,
+      "softmax_accepted_accuracy": 0.5407763284650415,
+      "sqi_coverage": 0.2839506172839506,
+      "sqi_accepted_accuracy": 0.5201891898930148,
+      "fusion_coverage": 0.8695987654320987,
+      "fusion_accepted_accuracy": 0.5441171431914676
+    }
+  ]
+}
