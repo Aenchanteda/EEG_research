@@ -1,0 +1,31 @@
+seed: 7
+dataset:
+  loader: moabb
+  name: BNCI2014_004
+  label: BCIC IV 2b
+  subjects: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  paradigm: left_right_hand
+  sfreq: 250.0
+  channel_note: "BCIC IV 2b uses 3 bipolar EEG channels (C3, Cz, C4 montage) rather than the 22-channel BCIC IV 2a montage."
+split:
+  prefer_sessions: true
+  fallback_test_size: 0.35
+preprocess:
+  low: 8.0
+  high: 30.0
+model:
+  name: csp_lda
+  csp_components: 2
+abstention:
+  ece_bins: 15
+  thresholds: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+  softmax_threshold: 0.6
+  margin_threshold: 0.2
+  sqi_threshold: 0.45
+  fusion_threshold: 0.5
+  fusion_weight_confidence: 0.5
+  fusion_weight_grid: [0.25, 0.5, 0.75]
+sqi:
+  method: rank
+artifacts_dir: artifacts/bcic2b
+notes: "Requires optional MOABB/MNE dependencies: python3 -m pip install -e .[dev,moabb]. First run downloads data. The script prefers session-based train/test splits and falls back to a deterministic stratified holdout only if session metadata is unavailable."
