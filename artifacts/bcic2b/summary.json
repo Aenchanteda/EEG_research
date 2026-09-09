@@ -1,0 +1,57 @@
+{
+  "n_subjects": 9,
+  "subjects": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "metrics_mean": {
+    "accuracy": 0.6264880952380953,
+    "expected_calibration_error": 0.04173087595265698,
+    "brier_score": 0.4475883200572634
+  },
+  "metrics_pooled": {
+    "accuracy": 0.6278169014084507,
+    "expected_calibration_error": 0.026292432606704743,
+    "brier_score": 0.44689782570108927,
+    "n_trials": 2840
+  },
+  "policies_mean": {
+    "forced": {
+      "coverage": 1.0,
+      "accuracy": 0.6264880952380953,
+      "risk": 0.3735119047619048
+    },
+    "softmax": {
+      "coverage": 0.4049107142857143,
+      "accuracy": 0.6580710705974087,
+      "risk": 0.34192892940259134
+    },
+    "margin": {
+      "coverage": 0.4049107142857143,
+      "accuracy": 0.6580710705974087,
+      "risk": 0.34192892940259134
+    },
+    "sqi": {
+      "coverage": 0.31473214285714285,
+      "accuracy": 0.6192553746437244,
+      "risk": 0.3807446253562756
+    },
+    "combined_and": {
+      "coverage": 0.12569444444444444,
+      "accuracy": 0.78405967089841,
+      "risk": 0.21594032910159003
+    },
+    "fusion": {
+      "coverage": 0.4291666666666667,
+      "accuracy": 0.642157593324937,
+      "risk": 0.35784240667506295
+    }
+  }
+}
