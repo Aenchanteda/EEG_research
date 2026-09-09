@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run BCIC IV 2a within-subject CSP-LDA experiments through MOABB."""
+"""Run BCIC IV 2a within-subject experiments through MOABB."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from sklearn.preprocessing import LabelEncoder
 
 from mi_eeg_qa.abstention import confidence_scores, fusion_score, margin_scores, threshold_sweep
 from mi_eeg_qa.data.moabb_loaders import MOABBRequest, load_moabb_epochs
+from mi_eeg_qa.degradation import add_emg_noise
 from mi_eeg_qa.metrics import (
     accuracy,
     accuracy_at_coverage,
@@ -23,12 +24,18 @@ from mi_eeg_qa.metrics import (
     expected_calibration_error,
     risk_coverage_curve,
 )
-from mi_eeg_qa.models import CSPLDAClassifier
+from mi_eeg_qa.models import CSPLDAClassifier, EEGNetClassifier
 from mi_eeg_qa.preprocess import bandpass_epochs, standardize_epochs
 from mi_eeg_qa.sqi import fit_sqi, transform_sqi
 
 
 POLICIES = ("forced", "softmax", "margin", "sqi", "combined_and", "fusion")
+CSP_LDA_REFERENCE = {
+    "source": "BCIC IV 2a within-subject CSP-LDA artifacts on main",
+    "accuracy": 0.855,
+    "expected_calibration_error": 0.049,
+    "brier_score": 0.207,
+}
 
 
 def _load_config(path: Path) -> dict[str, Any]:
@@ -125,6 +132,54 @@ def _risk_coverage_lists(y_true: np.ndarray, proba: np.ndarray, score: np.ndarra
     return {k: v.tolist() for k, v in curve.items()}
 
 
+def _model_label(model_cfg: dict[str, Any]) -> str:
+    name = str(model_cfg.get("name", "csp_lda"))
+    return {"csp_lda": "CSP-LDA", "eegnet": "EEGNet"}.get(name, name)
+
+
+def _build_model(model_cfg: dict[str, Any], seed: int):
+    name = str(model_cfg.get("name", "csp_lda"))
+    if name == "csp_lda":
+        return CSPLDAClassifier(n_components=int(model_cfg.get("csp_components", 8)))
+    if name == "eegnet":
+        return EEGNetClassifier(
+            epochs=int(model_cfg.get("epochs", 12)),
+            batch_size=int(model_cfg.get("batch_size", 32)),
+            lr=float(model_cfg.get("lr", 1e-3)),
+            weight_decay=float(model_cfg.get("weight_decay", 1e-4)),
+            dropout=float(model_cfg.get("dropout", 0.25)),
+            seed=int(model_cfg.get("seed", seed)),
+            device=str(model_cfg.get("device", "cpu")),
+        )
+    raise ValueError("BCIC IV 2a within-subject script supports model.name: csp_lda or eegnet")
+
+
+def _test_degradation(X_test: np.ndarray, cfg: dict[str, Any], sfreq: float, seed: int) -> tuple[np.ndarray, dict[str, Any] | None]:
+    degrade_cfg = cfg.get("test_degradation", {})
+    if not bool(degrade_cfg.get("enabled", False)):
+        return X_test, None
+    if degrade_cfg.get("type", "emg") != "emg":
+        raise ValueError("Only test_degradation.type: emg is supported for this story-scoped runner")
+
+    strength = float(degrade_cfg.get("strength", 0.6))
+    probability = float(degrade_cfg.get("probability", 0.3))
+    degraded = add_emg_noise(
+        X_test,
+        sfreq=sfreq,
+        strength=strength,
+        probability=probability,
+        seed=int(degrade_cfg.get("seed", seed + 1000)),
+    )
+    return degraded, {
+        "type": "emg",
+        "label": str(degrade_cfg.get("label", "mid_emg")),
+        "strength": strength,
+        "probability": probability,
+        "seed": int(degrade_cfg.get("seed", seed + 1000)),
+        "scope": "test_only_after_clean_train_preprocess",
+    }
+
+
 def _evaluate_policies(
     y_true: np.ndarray,
     proba: np.ndarray,
@@ -201,7 +256,7 @@ def _run_subject(subject: int, cfg: dict[str, Any], output_dir: Path) -> dict[st
     y = label_encoder.transform(y_raw)
     if len(label_encoder.classes_) != 2:
         raise ValueError(
-            f"BCIC IV 2a CSP-LDA run requires binary left_right_hand labels; got {list(label_encoder.classes_)}"
+            f"BCIC IV 2a within-subject run requires binary left_right_hand labels; got {list(label_encoder.classes_)}"
         )
 
     split_cfg = cfg.get("split", {})
@@ -223,14 +278,13 @@ def _run_subject(subject: int, cfg: dict[str, Any], output_dir: Path) -> dict[st
     sqi_cfg = cfg.get("sqi", {})
     sqi_scorer = fit_sqi(X_train, sfreq=sfreq, method=sqi_cfg.get("method", "rank"))
     q_train = transform_sqi(sqi_scorer, X_train)
-    q_test = transform_sqi(sqi_scorer, X_test)
+    X_eval, degradation_info = _test_degradation(X_test, cfg, sfreq=sfreq, seed=seed + subject)
+    q_test = transform_sqi(sqi_scorer, X_eval)
 
     model_cfg = cfg.get("model", {})
-    if model_cfg.get("name", "csp_lda") != "csp_lda":
-        raise ValueError("This BCIC IV 2a script currently supports model.name: csp_lda")
-    model = CSPLDAClassifier(n_components=int(model_cfg.get("csp_components", 8)))
+    model = _build_model(model_cfg, seed=seed)
     model.fit(X_train, y_train)
-    proba = model.predict_proba(X_test)
+    proba = model.predict_proba(X_eval)
 
     metrics = {
         "accuracy": accuracy(y_test, proba.argmax(axis=1)),
@@ -249,6 +303,10 @@ def _run_subject(subject: int, cfg: dict[str, Any], output_dir: Path) -> dict[st
         "labels": label_encoder.classes_.tolist(),
         "seed": seed,
         "sfreq": sfreq,
+        "model": model_cfg,
+        "model_label": _model_label(model_cfg),
+        "preprocess": cfg.get("preprocess", {}),
+        "test_degradation": degradation_info,
         "split": split_info,
         "n_train": int(len(train_idx)),
         "n_test": int(len(test_idx)),
@@ -275,7 +333,7 @@ def _plot_subject(result: dict[str, Any], path: Path) -> None:
         plt.plot(curve["coverage"], curve["risk"], label=name, linewidth=1.2)
     plt.xlabel("Coverage")
     plt.ylabel("Risk (1 - accuracy)")
-    plt.title(f"BCIC IV 2a subject {result['subject']:02d} risk-coverage")
+    plt.title(f"BCIC IV 2a {result['model_label']} subject {result['subject']:02d} risk-coverage")
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=8)
     plt.tight_layout()
@@ -283,8 +341,140 @@ def _plot_subject(result: dict[str, Any], path: Path) -> None:
     plt.close()
 
 
-def _write_summary(results: list[dict[str, Any]], output_dir: Path) -> dict[str, Any]:
-    summary: dict[str, Any] = {"n_subjects": len(results), "subjects": [int(r["subject"]) for r in results]}
+def _format_float(value: float) -> str:
+    return "nan" if np.isnan(value) else f"{value:.3f}"
+
+
+def _write_run_notes(summary: dict[str, Any], output_dir: Path) -> None:
+    model = summary["model"]
+    metrics = summary["metrics_mean"]
+    degradation = summary.get("test_degradation")
+    lines = [
+        f"# BCIC IV 2a within-subject {summary['model_label']} abstention run",
+        "",
+        "- Date: 2026-09-09 UTC",
+        f"- Command: `{summary['command']}`",
+        f"- Config: `{summary['config_path']}`",
+        f"- Output directory: `{summary['artifacts_dir']}/`",
+        "- Dataset: MOABB `BNCI2014_001` (BCIC IV 2a), `left_right_hand` paradigm",
+        f"- Model: `{model.get('name')}`",
+        f"- Training budget: seed {summary['seed']}, epochs {model.get('epochs', 'n/a')}, "
+        f"batch size {model.get('batch_size', 'n/a')}, lr {model.get('lr', 'n/a')}",
+        "- Preprocess: 8-30 Hz bandpass, per-epoch/channel standardization",
+        "- SQI: fitted on train split only and transformed on test/evaluation trials",
+        f"- Completed subjects: {', '.join(str(s) for s in summary['subjects'])}",
+        "- CSP-LDA reference: Acc 0.855, ECE 0.049, Brier 0.207",
+    ]
+    if degradation is None:
+        lines.append("- Test-time degradation: none (clean primary run)")
+    else:
+        lines.append(
+            "- Test-time degradation: "
+            f"{degradation['label']} {degradation['type']} after clean train preprocessing "
+            f"(strength {degradation['strength']}, probability {degradation['probability']})"
+        )
+    lines.extend(
+        [
+            "",
+            "## Subject-mean metrics",
+            "",
+            "| Metric | Mean | CSP-LDA reference |",
+            "| --- | ---: | ---: |",
+            f"| Accuracy | {metrics['accuracy']:.3f} | {CSP_LDA_REFERENCE['accuracy']:.3f} |",
+            f"| ECE | {metrics['expected_calibration_error']:.3f} | {CSP_LDA_REFERENCE['expected_calibration_error']:.3f} |",
+            f"| Brier | {metrics['brier_score']:.3f} | {CSP_LDA_REFERENCE['brier_score']:.3f} |",
+            "",
+            "## Default policy means",
+            "",
+            "| Policy | Coverage | Accepted accuracy | Risk |",
+            "| --- | ---: | ---: | ---: |",
+        ]
+    )
+    for policy, values in summary["policies_mean"].items():
+        lines.append(
+            f"| {policy} | {values['coverage']:.3f} | {_format_float(values['accuracy'])} | {_format_float(values['risk'])} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Per-subject compact metrics",
+            "",
+            "| Subject | Accuracy | ECE | Brier | Forced cov | Softmax cov/acc | Margin cov/acc | SQI cov/acc | Combined cov/acc | Fusion cov/acc |",
+            "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for result in summary["per_subject"]:
+        policies = result["policies"]
+        lines.append(
+            f"| {result['subject']} | {result['metrics']['accuracy']:.3f} | "
+            f"{result['metrics']['expected_calibration_error']:.3f} | {result['metrics']['brier_score']:.3f} | "
+            f"{policies['forced']['default']['coverage']:.3f} | "
+            f"{policies['softmax']['default']['coverage']:.3f}/{_format_float(policies['softmax']['default']['accuracy'])} | "
+            f"{policies['margin']['default']['coverage']:.3f}/{_format_float(policies['margin']['default']['accuracy'])} | "
+            f"{policies['sqi']['default']['coverage']:.3f}/{_format_float(policies['sqi']['default']['accuracy'])} | "
+            f"{policies['combined_and']['default']['coverage']:.3f}/{_format_float(policies['combined_and']['default']['accuracy'])} | "
+            f"{policies['fusion']['default']['coverage']:.3f}/{_format_float(policies['fusion']['default']['accuracy'])} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Artifact inventory",
+            "",
+            "- `summary.json`",
+            "- `summary_fusion_risk_coverage.png`",
+            "- `summary_default_policy_operating_points.png`",
+        ]
+    )
+    for subject in summary["subjects"]:
+        lines.append(f"- `subject_{subject:02d}.json`, `subject_{subject:02d}_risk_coverage.png`")
+    (output_dir / "RUN_NOTES.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _plot_default_policies(summary: dict[str, Any], path: Path) -> None:
+    names = list(POLICIES)
+    coverage = [summary["policies_mean"][name]["coverage"] for name in names]
+    accuracy_values = [summary["policies_mean"][name]["accuracy"] for name in names]
+    x = np.arange(len(names))
+    width = 0.38
+    plt.figure(figsize=(8, 4.8))
+    plt.bar(x - width / 2, coverage, width=width, label="Coverage")
+    plt.bar(x + width / 2, accuracy_values, width=width, label="Accepted accuracy")
+    plt.ylim(0.0, 1.05)
+    plt.xticks(x, names, rotation=25, ha="right")
+    plt.ylabel("Mean value")
+    plt.title(f"BCIC IV 2a {summary['model_label']} default policy operating points")
+    plt.grid(axis="y", alpha=0.25)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(path, dpi=140)
+    plt.close()
+
+
+def _write_summary(
+    results: list[dict[str, Any]],
+    output_dir: Path,
+    cfg: dict[str, Any],
+    config_path: Path,
+    command: str,
+) -> dict[str, Any]:
+    model_cfg = cfg.get("model", {})
+    summary: dict[str, Any] = {
+        "config_path": str(config_path),
+        "command": command,
+        "artifacts_dir": str(output_dir),
+        "dataset": "BNCI2014_001",
+        "paradigm": cfg.get("dataset", {}).get("paradigm", "left_right_hand"),
+        "seed": int(cfg.get("seed", 7)),
+        "model": model_cfg,
+        "model_label": _model_label(model_cfg),
+        "preprocess": cfg.get("preprocess", {}),
+        "sqi": cfg.get("sqi", {}),
+        "test_degradation": results[0].get("test_degradation") if results else None,
+        "n_subjects": len(results),
+        "subjects": [int(r["subject"]) for r in results],
+        "csp_lda_reference": CSP_LDA_REFERENCE,
+        "per_subject": results,
+    }
     metric_names = ("accuracy", "expected_calibration_error", "brier_score")
     summary["metrics_mean"] = {
         name: float(np.mean([r["metrics"][name] for r in results])) for name in metric_names
@@ -296,6 +486,7 @@ def _write_summary(results: list[dict[str, Any]], output_dir: Path) -> dict[str,
             for key in ("coverage", "accuracy", "risk")
         }
     (output_dir / "summary.json").write_text(json.dumps(_jsonable(summary), indent=2, allow_nan=True), encoding="utf-8")
+    _write_run_notes(summary, output_dir)
 
     plt.figure(figsize=(7, 4.5))
     for result in results:
@@ -303,13 +494,14 @@ def _write_summary(results: list[dict[str, Any]], output_dir: Path) -> dict[str,
         plt.plot(curve["coverage"], curve["risk"], alpha=0.35, linewidth=1.0, label=f"S{result['subject']:02d}")
     plt.xlabel("Coverage")
     plt.ylabel("Risk (1 - accuracy)")
-    plt.title("BCIC IV 2a fusion risk-coverage by subject")
+    plt.title(f"BCIC IV 2a {summary['model_label']} fusion risk-coverage by subject")
     plt.grid(True, alpha=0.3)
     if len(results) <= 9:
         plt.legend(fontsize=7, ncol=3)
     plt.tight_layout()
     plt.savefig(output_dir / "summary_fusion_risk_coverage.png", dpi=140)
     plt.close()
+    _plot_default_policies(summary, output_dir / "summary_default_policy_operating_points.png")
     return summary
 
 
@@ -324,21 +516,23 @@ def _subjects_from_args(args: argparse.Namespace, cfg: dict[str, Any]) -> list[i
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run BCIC IV 2a within-subject CSP-LDA experiments.")
+    parser = argparse.ArgumentParser(description="Run BCIC IV 2a within-subject experiments.")
     parser.add_argument("--config", default="configs/bcic2a.yaml")
     parser.add_argument("--subject", type=int, action="append", help="Subject to run; can be repeated. Overrides config list.")
     parser.add_argument("--smoke-moabb", action="store_true", help="Run only one configured subject to validate MOABB download/loading.")
     parser.add_argument("--output-dir", default=None, help="Override artifact output directory.")
     args = parser.parse_args()
 
-    cfg = _load_config(Path(args.config))
+    config_path = Path(args.config)
+    cfg = _load_config(config_path)
     output_dir = Path(args.output_dir or cfg.get("artifacts_dir", "artifacts/bcic2a"))
     subjects = _subjects_from_args(args, cfg)
+    model_label = _model_label(cfg.get("model", {}))
 
     try:
         results = []
         for subject in subjects:
-            print(f"Running BNCI2014_001 within-subject CSP-LDA for subject {subject:02d}")
+            print(f"Running BNCI2014_001 within-subject {model_label} for subject {subject:02d}")
             result = _run_subject(subject, cfg, output_dir)
             results.append(result)
             m = result["metrics"]
@@ -353,7 +547,8 @@ def main() -> None:
         print(str(exc), file=sys.stderr)
         raise SystemExit(2) from exc
 
-    summary = _write_summary(results, output_dir)
+    command = "python3 " + " ".join(sys.argv)
+    summary = _write_summary(results, output_dir, cfg=cfg, config_path=config_path, command=command)
     print(f"Wrote per-subject JSON/PNG artifacts and summary under {output_dir}")
     print(json.dumps(_jsonable(summary["metrics_mean"]), indent=2))
 

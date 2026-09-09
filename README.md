@@ -99,6 +99,28 @@ The BCIC run writes per-subject JSON and risk-coverage PNGs under
 `forced`, `softmax`, `margin`, `sqi`, `combined_and`, and `fusion`; model ID
 `csp_lda` maps to `CSPLDAClassifier`.
 
+### Run BCIC IV 2a EEGNet within-subject experiments
+
+```bash
+python3 scripts/run_within_subject.py --config configs/bcic2a_eegnet.yaml
+```
+
+This uses the same BCIC IV 2a binary left/right, 8-30 Hz preprocessing,
+session split, train-only SQI fitting, and abstention policies as the CSP-LDA
+run, but sets model ID `eegnet` to `EEGNetClassifier`. The documented training
+budget is seed 7, 12 epochs, batch size 32, AdamW lr 0.001, weight decay
+0.0001, and CPU execution. Outputs are written under
+`artifacts/bcic2a_eegnet/` with `summary.json`, `RUN_NOTES.md`, per-subject
+JSON/PNGs, and summary plots.
+
+The optional story-scoped mid-EMG test-time degradation run trains the same
+EEGNet models clean, injects EMG noise into test trials only, and writes a
+separate artifact tree:
+
+```bash
+python3 scripts/run_within_subject.py --config configs/bcic2a_eegnet_mid_emg.yaml
+```
+
 ### Run PhysioNet <-> BCIC IV 2a cross-dataset experiments
 
 ```bash
