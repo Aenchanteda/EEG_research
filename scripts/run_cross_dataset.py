@@ -39,6 +39,22 @@ WITHIN_BCIC2A_BASELINE = {
     "expected_calibration_error": 0.049,
     "brier_score": 0.207,
 }
+PREVIOUS_PARTIAL_RESULTS = {
+    "PhysionetMI->BNCI2014_001": {
+        "source_subjects": 12,
+        "target_subjects": 9,
+        "accuracy": 0.622,
+        "expected_calibration_error": 0.120,
+        "brier_score": 0.487,
+    },
+    "BNCI2014_001->PhysionetMI": {
+        "source_subjects": 9,
+        "target_subjects": 6,
+        "accuracy": 0.530,
+        "expected_calibration_error": 0.137,
+        "brier_score": 0.535,
+    },
+}
 
 
 @dataclass
@@ -122,6 +138,23 @@ def _subject_list(spec: dict[str, Any]) -> list[int]:
     out = [int(s) for s in subjects if int(s) not in exclude]
     if not out:
         raise ValueError(f"No subjects configured for {name}")
+    return out
+
+
+def _configured_exclusions(spec: dict[str, Any]) -> list[dict[str, Any]]:
+    reasons = {int(k): str(v) for k, v in spec.get("exclude_reasons", {}).items()}
+    out = []
+    for subject in spec.get("exclude_subjects", []):
+        subject = int(subject)
+        out.append(
+            {
+                "subject": subject,
+                "reason": reasons.get(
+                    subject,
+                    "configured exclusion; see dataset notes",
+                ),
+            }
+        )
     return out
 
 
@@ -353,9 +386,11 @@ def _write_run_notes(summary: dict[str, Any], output_dir: Path) -> None:
         f"- Source configured subjects: {summary['source']['configured_subject_count']}",
         f"- Source run limit: {summary['source']['run_subject_limit'] if summary['source']['run_subject_limit'] is not None else 'none'}",
         f"- Source loaded subjects: {len(summary['source']['subjects'])} ({summary['source']['subjects']})",
+        f"- Source configured exclusions: {summary['source'].get('configured_exclusions', [])}",
         f"- Target configured subjects: {summary['target']['configured_subject_count']}",
         f"- Target run limit: {summary['target']['run_subject_limit'] if summary['target']['run_subject_limit'] is not None else 'none'}",
         f"- Target loaded subjects: {len(summary['target']['subjects'])} ({summary['target']['subjects']})",
+        f"- Target configured exclusions: {summary['target'].get('configured_exclusions', [])}",
         "- PhysioNet subject 88 is excluded by config for full-dataset loads because MOABB documents it at 128 Hz rather than 160 Hz.",
         "",
         "## Pooled target metrics",
@@ -382,6 +417,26 @@ def _write_run_notes(summary: dict[str, Any], output_dir: Path) -> None:
             f"- ECE: {WITHIN_BCIC2A_BASELINE['expected_calibration_error']:.3f}",
             f"- Brier: {WITHIN_BCIC2A_BASELINE['brier_score']:.3f}",
             "- Cross-dataset accuracy is expected to drop under montage, subject-population, and collection-protocol shift.",
+            "",
+            "## Previous partial-run comparison",
+            "",
+            "| Run | Source subjects | Target subjects | Accuracy | ECE | Brier |",
+            "| --- | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    direction_key = f"{summary['source']['name']}->{summary['target']['name']}"
+    previous = summary.get("previous_partial_reference") or PREVIOUS_PARTIAL_RESULTS.get(direction_key)
+    if previous:
+        lines.append(
+            f"| Previous partial | {previous['source_subjects']} | {previous['target_subjects']} | "
+            f"{previous['accuracy']:.3f} | {previous['expected_calibration_error']:.3f} | {previous['brier_score']:.3f} |"
+        )
+    lines.append(
+        f"| Expanded current | {len(summary['source']['subjects'])} | {len(summary['target']['subjects'])} | "
+        f"{pooled['accuracy']:.3f} | {pooled['expected_calibration_error']:.3f} | {pooled['brier_score']:.3f} |"
+    )
+    lines.extend(
+        [
             "",
             "## Skips",
             "",
@@ -480,9 +535,12 @@ def _run(cfg: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
         "epoch": cfg.get("epoch", {}),
         "model": model_cfg,
         "within_subject_baseline_bcic2a": WITHIN_BCIC2A_BASELINE,
+        "previous_partial_reference": PREVIOUS_PARTIAL_RESULTS.get(f"{source.name}->{target.name}"),
         "pooled": pooled,
         "per_target_subject": per_subject,
     }
+    summary["source"]["configured_exclusions"] = _configured_exclusions(source_spec)
+    summary["target"]["configured_exclusions"] = _configured_exclusions(target_spec)
     (output_dir / "summary.json").write_text(json.dumps(_jsonable(summary), indent=2, allow_nan=True), encoding="utf-8")
     _write_run_notes(summary, output_dir)
     _plot_pooled_risk(summary, output_dir / "pooled_risk_coverage.png")

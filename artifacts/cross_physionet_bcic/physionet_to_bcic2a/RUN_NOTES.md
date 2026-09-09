@@ -23,29 +23,31 @@ Direction: PhysionetMI -> BNCI2014_001
 ## Subject counts
 
 - Source configured subjects: 108
-- Source run limit: 12
-- Source loaded subjects: 12 ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+- Source run limit: none
+- Source loaded subjects: 108 ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109])
+- Source configured exclusions: [{'subject': 88, 'reason': 'MOABB documents subject 88 at 128 Hz; full multi-subject loads use 160 Hz subjects only.'}]
 - Target configured subjects: 9
 - Target run limit: none
 - Target loaded subjects: 9 ([1, 2, 3, 4, 5, 6, 7, 8, 9])
+- Target configured exclusions: []
 - PhysioNet subject 88 is excluded by config for full-dataset loads because MOABB documents it at 128 Hz rather than 160 Hz.
 
 ## Pooled target metrics
 
-- Accuracy: 0.622
-- ECE: 0.120
-- Brier: 0.487
+- Accuracy: 0.674
+- ECE: 0.037
+- Brier: 0.418
 
 ## Default policy table
 
 | Policy | Coverage | Accepted accuracy | Risk |
 | --- | ---: | ---: | ---: |
-| forced | 1.000 | 0.622 | 0.378 |
-| softmax | 0.794 | 0.647 | 0.353 |
-| margin | 0.794 | 0.647 | 0.353 |
-| sqi | 0.501 | 0.633 | 0.367 |
-| combined_and | 0.390 | 0.662 | 0.338 |
-| fusion | 0.833 | 0.645 | 0.355 |
+| forced | 1.000 | 0.674 | 0.326 |
+| softmax | 0.577 | 0.750 | 0.250 |
+| margin | 0.577 | 0.750 | 0.250 |
+| sqi | 0.490 | 0.696 | 0.304 |
+| combined_and | 0.288 | 0.784 | 0.216 |
+| fusion | 0.656 | 0.718 | 0.282 |
 
 ## BCIC IV 2a within-subject reference
 
@@ -54,6 +56,13 @@ Direction: PhysionetMI -> BNCI2014_001
 - ECE: 0.049
 - Brier: 0.207
 - Cross-dataset accuracy is expected to drop under montage, subject-population, and collection-protocol shift.
+
+## Previous partial-run comparison
+
+| Run | Source subjects | Target subjects | Accuracy | ECE | Brier |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Previous partial | 12 | 9 | 0.622 | 0.120 | 0.487 |
+| Expanded current | 108 | 9 | 0.674 | 0.037 | 0.418 |
 
 ## Skips
 

@@ -9,6 +9,8 @@ target:
   name: PhysionetMI
   subjects: all
   exclude_subjects: [88]
+  exclude_reasons:
+    88: "MOABB documents subject 88 at 128 Hz; full multi-subject loads use 160 Hz subjects only."
   paradigm: left_right_hand_imagery
   notes: "MOABB PhysionetMI(imagined=True, executed=False): imagery left/right fist runs 4, 8, 12."
 sfreq: 160.0
