@@ -142,7 +142,6 @@ def _load_dataset_block(
     paradigm = mods["LeftRightImagery"](
         fmin=float(pp.get("low", 8.0)),
         fmax=float(pp.get("high", 30.0)),
-        events=["left_hand", "right_hand"],
         tmin=float(epoch.get("tmin", 0.5)),
         tmax=float(epoch.get("tmax", 4.0)),
         channels=list(channels),
