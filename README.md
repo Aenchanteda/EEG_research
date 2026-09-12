@@ -1,163 +1,116 @@
-# EEG_research
-For code testing
+# Evaluating Signal Quality and Confidence for Selective Motor Imagery EEG Decoding
 
-## Quality-aware and Abstention-enabled Cross-dataset Motor Imagery EEG Decoding
+Companion code for the Sensors manuscript of the same title (Nan et al.).
 
-This repository now scaffolds a reproducible Python experiment package,
-`mi_eeg_qa`, for studying trust, calibration, signal quality, and abstention in
-cross-dataset motor imagery EEG decoding. The package is framed around
-quality-aware decision support rather than chasing state-of-the-art decoder
-accuracy.
+> **Authoritative analysis package:** use the accompanying **`reproducibility_package`** (corrected runners, configs, regenerated predictions, and table/figure scripts).
+> The historical GitHub snapshot at this repository is **not** the corrected analysis used for the manuscript tables.
 
-### What is included
+## What this manuscript evaluates
 
-- Synthetic motor imagery EEG generator for deterministic smoke tests.
-- CSP-LDA baseline with `predict_proba`.
-- PyTorch EEGNet and ShallowConvNet wrappers with `predict_proba`;
-  EEGNet supports MC-dropout probability estimation through the wrapper.
-  ShallowConvNet is kept as a lightweight stand-in for future FBCNet work.
-- Signal quality index (SQI) features:
-  peak-to-peak/RMS, high-frequency power proxy, and flat-channel fraction,
-  mapped to `q in [0, 1]`.
-- Abstention policies: forced accept, softmax max-probability, margin,
-  temperature scaling, SQI-only, AND-combination, fusion, and threshold sweeps.
-- Metrics: accuracy, expected calibration error (ECE, default 15 bins), Brier
-  score, risk-coverage curve, and accuracy at coverage.
-- Degradation helpers for EOG-like blinks, EMG-like high-frequency noise, and
-  channel dropping.
-- Optional MOABB/MNE loader entry points. The real within-subject script below
-  targets BCIC IV 2a (`BNCI2014_001`) left-vs-right hand binary decoding.
+Independent-session MI-EEG abstention with a training-fitted signal quality index (SQI), maximum posterior confidence, and fixed equal-weight fusion, compared at **matched retained-trial counts** (nominal 80% / 90% coverage).
 
-### Install
+Main evidence:
+- CSP-LDA on BCI Competition IV 2a and 2b (nine subjects each)
+- Fixed-budget EEGNet-style check on 2a
+- Synthetic post-preprocessing perturbations (EOG-like / EMG-like / channel drop)
+- Separately audited source-only cross-corpus transfer (PhysioNet ↔ BCIC 2a)
 
-Python 3.10+ is required.
+**Not main evidence** (scaffold only): MC-dropout inference, temperature scaling, ShallowConvNet, AND-combination thresholds. Configuration threshold knobs (e.g. softmax/SQI/fusion cutoffs) define separate diagnostics; they do **not** define the matched-coverage table columns.
 
-```bash
-python3 -m pip install -e .[dev]
+## Data availability
+
+### Raw EEG (do not rehost)
+- **BCI Competition IV** datasets 2a / 2b — public; load via **MOABB**
+- **PhysioNet** EEG Motor Movement/Imagery — public; load via **MOABB** / PhysioBank
+
+This project does **not** redistribute raw EEG recordings.
+
+### Derived artifacts
+- Regenerated within-subject and perturbation predictions (e.g. **126** `.npz` arrays) live in the **reproducibility package** / local `artifacts/` trees used by `analyze_corrected.py`
+- Archived transfer risk curves are audited numerically (not a fresh raw-data retrain in the manuscript analysis)
+
+## Reproduce manuscript numbers
+
+Follow the README inside the accompanying **reproducibility_package**:
+1. `analyze_corrected.py` — regenerate numerical tables / supplementary curves from saved predictions
+2. `score_diagnostics.py` — score diagnostics
+3. `redesign_figures.py` — main figures (and optional graphical abstract)
+
+Original source commit recorded in the package provenance: `fc34d6c792343e79cc7a4961eaf5a4ade5b062db` (superseded for within-subject evidence after session-split correction).
+
+## Repository layout (corrected tree)
+
+```text
+mi_eeg_qa/          # package code
+configs/            # experiment configs
+scripts/            # runners
+artifacts/          # derived outputs (predictions, summaries)
+tests/              # unit / smoke tests
 ```
 
-For optional MOABB/MNE dataset loading:
+## Install (development)
+
+Python 3.10+ recommended:
 
 ```bash
-python3 -m pip install -e .[dev,moabb]
-```
-
-### Run tests
-
-```bash
+python3 -m pip install -e ".[dev]"
+# optional real-data loaders:
+python3 -m pip install -e ".[dev,moabb]"
 pytest
 ```
 
-### Run the smoke experiment
+## Citation
+
+Please cite the Sensors manuscript (title above) and point readers to the **reproducibility_package** for exact prediction-level evidence. A Zenodo DOI for the package is pending author release.
+
+---
+
+### Historical scaffold notes
+
+The sections below retain broader repository capabilities (smoke synthetic EEG, unused abstention options, etc.). They describe engineering scaffolding and **do not expand** the manuscript evidence scope.
+
+## Scaffold package capabilities
+
+- Synthetic motor imagery EEG generator for deterministic smoke tests.
+- CSP-LDA baseline with `predict_proba`.
+- PyTorch EEGNet and ShallowConvNet wrappers with `predict_proba`; EEGNet supports MC-dropout probability estimation through the wrapper.
+- Signal quality index (SQI) features: peak-to-peak/RMS, high-frequency power proxy, and flat-channel fraction, mapped to `q in [0, 1]`.
+- Abstention policies used for engineering diagnostics: forced accept, softmax max-probability, margin, temperature scaling, SQI-only, AND-combination, fusion, and threshold sweeps.
+- Metrics helpers: accuracy, expected calibration error (ECE, default 15 bins), Brier score, risk-coverage curve, and accuracy at coverage.
+- Degradation helpers for EOG-like blinks, EMG-like high-frequency noise, and channel dropping.
+- Optional MOABB/MNE loader entry points for public datasets.
+
+## Run scaffold tests and smoke checks
 
 ```bash
+pytest
 python3 scripts/run_smoke.py --config configs/smoke.yaml
 ```
 
-The smoke run trains CSP-LDA on deterministic synthetic EEG, compares forced,
-softmax, SQI-only, AND-combined, and fusion abstention policies, prints ECE and
-Brier score, and writes:
+The smoke run trains CSP-LDA on deterministic synthetic EEG, compares several diagnostic abstention policies, prints ECE and Brier score, and writes scaffold outputs such as `artifacts/smoke_results.json` and `artifacts/smoke_risk_coverage.png`.
 
-- `artifacts/smoke_results.json`
-- `artifacts/smoke_risk_coverage.png`
+## Historical runner examples
 
-### Run BCIC IV 2a within-subject experiments
+These commands document repository runner interfaces. Use the accompanying `reproducibility_package`, not this historical snapshot alone, for manuscript table reproduction.
 
 ```bash
+# BCIC IV 2a CSP-LDA within-subject scaffold run
 python3 scripts/run_within_subject.py --config configs/bcic2a.yaml
-```
 
-This command requires the optional `moabb` extra:
-
-```bash
-python3 -m pip install -e .[dev,moabb]
-python3 scripts/run_within_subject.py --config configs/bcic2a.yaml
-```
-
-The first run downloads MOABB/MNE data. By default, the config runs all 9 BCIC
-IV 2a subjects with the `left_right_hand` paradigm so CSP-LDA remains binary.
-The script prefers session-based train/test splits from MOABB metadata
-(BCIC IV 2a typically provides separate train/evaluation sessions). If session
-metadata is unavailable, it falls back to a deterministic stratified holdout
-using the configured seed.
-
-Run one subject:
-
-```bash
-python3 scripts/run_within_subject.py --config configs/bcic2a.yaml --subject 1
-```
-
-Run a one-subject MOABB smoke/download check:
-
-```bash
+# One-subject MOABB smoke/download check
 python3 scripts/run_within_subject.py --config configs/bcic2a.yaml --smoke-moabb
-```
 
-The BCIC run writes per-subject JSON and risk-coverage PNGs under
-`artifacts/bcic2a/`, plus `summary.json` and
-`summary_fusion_risk_coverage.png`. Saved policy IDs are locked to:
-`forced`, `softmax`, `margin`, `sqi`, `combined_and`, and `fusion`; model ID
-`csp_lda` maps to `CSPLDAClassifier`.
-
-### Run BCIC IV 2a EEGNet within-subject experiments
-
-```bash
+# BCIC IV 2a EEGNet-style scaffold run
 python3 scripts/run_within_subject.py --config configs/bcic2a_eegnet.yaml
-```
 
-This uses the same BCIC IV 2a binary left/right, 8-30 Hz preprocessing,
-session split, train-only SQI fitting, and abstention policies as the CSP-LDA
-run, but sets model ID `eegnet` to `EEGNetClassifier`. The documented training
-budget is seed 7, 12 epochs, batch size 32, AdamW lr 0.001, weight decay
-0.0001, and CPU execution. Outputs are written under
-`artifacts/bcic2a_eegnet/` with `summary.json`, `RUN_NOTES.md`, per-subject
-JSON/PNGs, and summary plots.
-
-The optional story-scoped mid-EMG test-time degradation run trains the same
-EEGNet models clean, injects EMG noise into test trials only, and writes a
-separate artifact tree:
-
-```bash
-python3 scripts/run_within_subject.py --config configs/bcic2a_eegnet_mid_emg.yaml
-```
-
-### Run PhysioNet <-> BCIC IV 2a cross-dataset experiments
-### Run BCIC IV 2a artifact degradation experiments
-
-```bash
+# BCIC IV 2a post-preprocessing degradation scaffold run
 python3 scripts/run_bcic2a_degradation.py --config configs/bcic2a_degradation.yaml
-```
 
-This controlled experiment uses the same binary BCIC IV 2a left/right
-within-subject setup as `run_within_subject.py`, fits CSP-LDA and SQI on clean
-training epochs only, and injects EOG-like bursts, EMG/HF bursts, or channel
-drops into test epochs. Outputs are written to
-`artifacts/bcic2a_degradation/` as per-subject JSON files, pooled
-`summary.json`, `RUN_NOTES.md`, and summary PNGs.
-
-Run a smaller matrix first:
-
-```bash
+# Smaller degradation matrix
 python3 scripts/run_bcic2a_degradation.py --config configs/bcic2a_degradation.yaml --severity none --severity mid
-```
 
-Run one subject or one artifact type:
-
-```bash
-python3 scripts/run_bcic2a_degradation.py --config configs/bcic2a_degradation.yaml --subject 1
-python3 scripts/run_bcic2a_degradation.py --config configs/bcic2a_degradation.yaml --artifact eog
-```
-### Run BCIC IV 2b within-subject experiments
-
-```bash
-python3 -m pip install -e .[dev,moabb]
+# BCIC IV 2b CSP-LDA within-subject scaffold run
 python3 scripts/run_within_subject.py --config configs/bcic2b.yaml
 ```
 
-The BCIC IV 2b config uses MOABB `BNCI2014_004`, all 9 subjects, the same
-binary `left_right_hand` paradigm, 8-30 Hz bandpass, and the locked abstention
-policy IDs listed above. It writes artifacts under `artifacts/bcic2b/`.
-BCIC IV 2b differs from 2a in channel montage: it has 3 bipolar EEG channels
-(C3, Cz, C4 montage), so the config uses 2 CSP components rather than the
-larger 2a setting. The runner still prefers MOABB session-based splits and
-documents the deterministic stratified fallback if session metadata is absent.
+The MOABB-based runners download public dataset files through MOABB/MNE on first use. This repository does not host those raw recordings.
